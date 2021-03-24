@@ -35,6 +35,7 @@ declare class ChatClient {
   setProfile: (profile: IUserProfile) => Promise<IUserProfile>;
   getUsers: (usersIds: string[]) => Promise<User[]>;
   blockUsers: (usersIds: string[]) => Promise<User[]>;
+  unblockUsers: (usersIds: string[]) => Promise<User[]>;
   PublicChannel: PublicChannel;
   PrivateChannel: PrivateChannel;
   DirectChannel: DirectChannel;
@@ -215,7 +216,15 @@ declare enum UserAction {
 
 declare enum UserSearchOrder {
   FIRST_NAME,
-  LAST_NAME
+  LAST_NAME,
+  USERNAME
+}
+
+export enum UserSearchFilter {
+  BY_ALL,
+  BY_FIRST_NAME,
+  BY_LAST_NAME,
+  BY_USERNAME
 }
 
 declare enum MembersType {
@@ -245,7 +254,7 @@ declare class Query {
 }
 
 declare class UsersQueryBuilder extends QueryBuilder {
-  type: MembersType;
+  filter: UserSearchFilter;
   order: UserSearchOrder;
   searchQuery: string;
   i: number;
@@ -255,6 +264,11 @@ declare class UsersQueryBuilder extends QueryBuilder {
   query: (query: string) => this;
   orderByFirstname: () => this;
   orderByLastname: () => this;
+  orderByUsername: () => this;
+  filterByAll: () => this;
+  filterByFirstname: () => this;
+  filterByLastname: () => this;
+  filterByUsername: () => this;
   build: () => Promise<UsersQuery>;
 }
 
@@ -524,6 +538,8 @@ declare class ChannelListener {
   onUpdateTotalUnreadCount: (channel: Channel, totalUnread: number, unreadChannels: number) => void;
   onHide: (channel: Channel) => void;
   onUnhide: (channel: Channel) => void;
+  onMute: (channel: Channel) => void;
+  onUnmute: (channel: Channel) => void;
   onMarkAsUnread: (channel: Channel) => void;
   onClearHistory: (channel: Channel) => void;
   onChangeRole: (channel: Channel, members: Member[]) => void;
@@ -531,12 +547,9 @@ declare class ChannelListener {
 }
 
 declare class ConnectionListener {
-  onReconnectStarted: () => void;
-  onReconnectSucceeded: () => void;
-  onReconnectFailed: () => void;
-  onDisconnected: () => void;
   onTokenWillExpire: (timeInterval: number) => void;
   onTokenExpired: () => void;
+  onChangeConnectStatus: (status: string) => void;
 }
 
 declare class User {
@@ -546,6 +559,7 @@ declare class User {
   avatarUrl: string | null;
   presenceStatus: PresenceStatus;
   metadata: string | null;
+  blocked: boolean
 }
 
 interface Member extends User {
@@ -579,6 +593,8 @@ interface Channel {
   updatedAt: Date | number;
   id: string;
   isMarkedAsUnread: boolean;
+  muted: boolean;
+  muteExpireTime: Date | number;
   delete: () => Promise<void>;
   hide: () => Promise<boolean>;
   unhide: () => Promise<boolean>;
@@ -596,6 +612,8 @@ interface Channel {
   markAllMessagesAsDelivered: () => void;
   markAllMessagesAsRead: () => void;
   markAsUnRead: () => Promise<Channel>;
+  mute: (muteExpireTime: number) => Promise<Channel>;
+  unmute: () => Promise<Channel>
 }
 
 interface GroupChannel extends Channel {
