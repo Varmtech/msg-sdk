@@ -101,6 +101,7 @@ interface IAttachment {
   name?: string;
   type: string;
   url: string;
+  upload: boolean;
   progress?: IUploadProgress;
   completion?: IUploadCompletion;
 }
@@ -554,6 +555,7 @@ declare class ConnectionListener {
 
 declare class User {
   id: string;
+  identity: string;
   firstName: string | null;
   lastName: string | null;
   avatarUrl: string | null;
@@ -578,7 +580,16 @@ interface Message {
   isIncoming: boolean;
   metadata: string;
   chStatus: MessageUpdateStatus;
-  attachments: IAttachment[];
+  attachments: Attachment[];
+}
+
+interface Attachment {
+  fileSize?: number;
+  name: string;
+  type: string;
+  metadata?: string;
+  url: string;
+  upload: boolean
 }
 
 interface Channel {
