@@ -56,32 +56,32 @@ interface SceytChatError extends Error{
 
 interface ICreatePublicChannel {
   members: IMemberParams[];
-  metadata: string;
+  metadata?: string;
   subject: string;
-  avatarUrl: string;
-  label: string;
+  avatarUrl?: string;
+  label?: string;
   uri: string;
 }
 
 interface ICreatePrivateChannel {
   members: IMemberParams[];
-  metadata: string;
+  metadata?: string;
   subject: string;
-  avatarUrl: string;
-  label: string;
+  avatarUrl?: string;
+  label?: string;
 }
 interface ICreateDirectChannel {
   userId: string;
-  metadata: string;
-  label: string;
+  metadata?: string;
+  label?: string;
 }
 
 interface IChannelConfig {
-  uri: string;
-  subject: string;
-  metadata: string;
-  avatar: string;
-  label: string;
+  uri?: string;
+  subject?: string;
+  metadata?: string;
+  avatar?: string;
+  label?: string;
 }
 
 interface IMemberParams {
@@ -452,8 +452,9 @@ interface MessageByTypeQuery extends Query {
 }
 
 declare class ChannelListener {
-  onMessageEdited: (channel: Channel, message: Message) => void;
-  onMessageDeleted: (channel: Channel, message: Message) => void;
+  onMessageEdited: (channel: Channel, user: User, message: Message) => void;
+  onMessageDeleted: (channel: Channel, user: User, message: Message) => void;
+  onReactionUpdated: (channel: Channel, message: Message) => void;
   onMessage: (channel: Channel, message: Message) => void;
   onLeave: (channel: Channel, member: Member) => void;
   onBlock: (channel: Channel) => void;
@@ -510,9 +511,12 @@ interface Message {
   type: string;
   status: MessageDeliveryStatus;
   isIncoming: boolean;
-  metadata: string;
+  metadata?: string;
   chStatus: MessageUpdateStatus;
-  attachments: Attachment[];
+  selfReactions?: Reaction[] | null;
+  lastReactions?: Reaction[] | null;
+  reactionScores?: { [key: string]: number } | null;
+  attachments?: Attachment[];
 }
 
 interface Attachment {
@@ -524,12 +528,22 @@ interface Attachment {
   upload: boolean
 }
 
+interface Reaction {
+  key: string;
+  score: number;
+  reason: string;
+  updatedAt: Date;
+  createdAt: Date;
+  messageId: number;
+  user: User
+}
+
 interface Channel {
   lastMessage: Message | null;
   lastRead: number;
   lastDelivery: number;
-  label: string;
-  metadata: string;
+  label?: string;
+  metadata?: string;
   unreadCount: number;
   type: ChannelType;
   createdAt: Date | number;
@@ -556,13 +570,15 @@ interface Channel {
   markAllMessagesAsRead: () => Promise<void>;
   markAsUnRead: () => Promise<Channel>;
   mute: (muteExpireTime: number) => Promise<Channel>;
-  unmute: () => Promise<Channel>
+  unmute: () => Promise<Channel>;
+  addReaction: (messageId: string, key: string, score: number, reason: string, enforceUnique: boolean) => Promise<Message>
+  deleteReaction: (messageId: string, key: string) => Promise<Message>
 }
 
 interface GroupChannel extends Channel {
   membersCount: number;
   subject: string;
-  avatarUrl: string;
+  avatarUrl?: string;
   myRole: string;
   addMembers: (members: IMemberParams[]) => Promise<Member[]>;
   kickMembers: (memberIds: string[], ) => Promise<Member[]>;
