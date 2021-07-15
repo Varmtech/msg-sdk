@@ -111,80 +111,6 @@ interface IUserProfile {
   metadata?: string;
 }
 
-declare enum ChannelSearchQuerySortOptions {
-  LAST_MESSAGE,
-  CREATED_AT
-}
-
-declare enum ChannelType {
-  NONE,
-  PRIVATE,
-  PUBLIC,
-  DIRECT,
-}
-
-declare enum PresenceStatus {
-  Offline,
-  Online,
-}
-
-declare enum MessageUpdateStatus {
-  NORMAL,
-  EDIT,
-  DELETE,
-  COMPOSING,
-  PAUSED
-}
-
-declare enum MessageDeliveryStatus {
-  NONE,
-  SERVER,
-  DELIVERED,
-  READ
-}
-
-declare enum MessageQueryDirection {
-  NONE,
-  NEXT,
-  PREVIOUS,
-  NEAR
-}
-
-declare enum MessageQueryType {
-  SEARCH,
-  UPDATE
-}
-
-declare enum UserSearchOrder {
-  FIRST_NAME,
-  LAST_NAME,
-  USERNAME
-}
-
-export enum UserSearchFilter {
-  BY_ALL,
-  BY_FIRST_NAME,
-  BY_LAST_NAME,
-  BY_USERNAME
-}
-
-declare enum MembersType {
-  ALL,
-  PRIVILEGED
-}
-
-declare enum MembersOrder {
-  AFFILATION ,
-  ASC ,
-  DESC
-}
-
-declare enum MembersOrderKey {
-  USERNAME ,
-  FIRSTNAME ,
-  LASTNAME
-}
-
 declare class QueryBuilder {
   count: number;
 }
@@ -195,8 +121,8 @@ declare class Query {
 }
 
 declare class UsersQueryBuilder extends QueryBuilder {
-  filter: UserSearchFilter;
-  order: UserSearchOrder;
+  filter: string;
+  order: string;
   searchQuery: string;
   i: number;
   hasNext: boolean;
@@ -214,7 +140,7 @@ declare class UsersQueryBuilder extends QueryBuilder {
 }
 
 interface UsersQuery extends Query {
-  order: UserSearchOrder;
+  order: string;
   query: string;
   index: number;
   limit: (count: number) => this;
@@ -222,30 +148,22 @@ interface UsersQuery extends Query {
 }
 
 declare class BlockedUsersQueryBuilder extends QueryBuilder {
-  type: MembersType;
-  order: UserSearchOrder;
-  searchQuery: string;
   i: number;
   hasNext: boolean;
   constructor();
   limit: (count: number) => this;
-  query: (query: string) => this;
-  orderByFirstname: () => this;
-  orderByLastname: () => this;
   build: () => BlockedUsersQuery;
 }
 
 interface BlockedUsersQuery extends Query {
-  order: UserSearchOrder;
-  query: string;
   index: number;
   limit: (count: number) => this;
   loadNextPage: () => Promise<{ users: User[], hasNext: boolean }>;
 }
 
 declare class ChannelQueryBuilder extends QueryBuilder {
-  ctype: ChannelType;
-  sort: ChannelSearchQuerySortOptions;
+  ctype: string;
+  sort: string;
   hasNext: boolean;
   public: () => this;
   private: () => this;
@@ -267,9 +185,9 @@ declare class ChannelQueryBuilder extends QueryBuilder {
 }
 
 interface ChannelQuery extends Query {
-  ctype: ChannelType;
+  ctype: string;
   fields: never[];
-  sort: ChannelSearchQuerySortOptions;
+  sort: string;
   index: number;
   totalUnread?: number;
   limit: (limit: number) => this;
@@ -298,9 +216,9 @@ interface HiddenQuery extends Query {
 
 declare class MembersQueryBuilder extends QueryBuilder {
   channelId: string;
-  type: MembersType;
-  order: MembersOrder;
-  key: MembersOrderKey;
+  type: 'All' | 'Privileged';
+  order: 'Affilation' | 'Asc' | 'Desc';
+  key: 'Username' | 'Firstname' | 'Lastname';
   i: number;
   hasNext: boolean;
   constructor(channelPartialId: string);
@@ -318,9 +236,9 @@ declare class MembersQueryBuilder extends QueryBuilder {
 
 interface MembersQuery extends Query {
   channelId: string;
-  type: MembersType;
-  order: MembersOrder;
-  key: MembersOrderKey;
+  type: 'All' | 'Privileged';
+  order: 'Affilation' | 'Asc' | 'Desc';
+  key: 'Username' | 'Firstname' | 'Lastname';
   index: number;
   limit: (limit: number) => void;
   loadNextPage: () => Promise<{
@@ -361,10 +279,10 @@ interface BlockedQuery extends Query {
 
 declare class MessageQueryBuilder extends QueryBuilder {
   channelId: string;
-  queryDirection: MessageQueryDirection;
+  queryDirection: string;
   tmpStp?: number;
   msgId?: number;
-  type: MessageQueryType;
+  type: string;
   hasNext: boolean | null;
   msgType: string;
   constructor(channelPartialId: string);
@@ -376,10 +294,10 @@ declare class MessageQueryBuilder extends QueryBuilder {
 
 interface MessageQuery extends Query {
   channelId: string;
-  queryDirection: MessageQueryDirection;
+  queryDirection: string;
   timestamp?: number;
   messageId?: number;
-  type: MessageQueryType;
+  type: string;
   msgType?: string;
   reverseData: boolean;
   index: number;
@@ -416,18 +334,18 @@ declare class MessageBuilder {
   metadata: string;
   attachments: IAttachmentParams[];
   tid: number;
-  id: number;
   constructor(userId: string, channelId: string);
   setText: (text: string) => this;
   setMetadata: (metadata: string) => this;
   setType: (type: string) => this;
   setAttachments: (attachments: IAttachmentParams[]) => this;
+  setMentionUserIds: (userIds: string[]) => this;
   create: () => Message;
 }
 
 declare class MessageByTypeQueryBuilder extends QueryBuilder {
   channelId: string;
-  type: MessageQueryType;
+  type: string;
   hasNext: boolean | null;
   msgType: string;
   reverseData: boolean;
@@ -440,7 +358,7 @@ declare class MessageByTypeQueryBuilder extends QueryBuilder {
 
 interface MessageByTypeQuery extends Query {
   channelId: string;
-  type: MessageQueryType;
+  type: string;
   msgType?: string;
   reverseData: boolean;
   limit: (limit: number) => this;
@@ -454,7 +372,7 @@ interface MessageByTypeQuery extends Query {
 declare class ChannelListener {
   onMessageEdited: (channel: Channel, user: User, message: Message) => void;
   onMessageDeleted: (channel: Channel, user: User, message: Message) => void;
-  onReactionUpdated: (channel: Channel, message: Message) => void;
+  onReactionUpdated: (channel: Channel, reactionEvent: ReactionEvent) => void;
   onMessage: (channel: Channel, message: Message) => void;
   onLeave: (channel: Channel, member: Member) => void;
   onBlock: (channel: Channel) => void;
@@ -493,7 +411,8 @@ declare class User {
   firstName: string | null;
   lastName: string | null;
   avatarUrl: string | null;
-  presenceStatus: PresenceStatus;
+  presenceStatus: string;
+  state: string;
   metadata: string | null;
   blocked: boolean
 }
@@ -505,18 +424,20 @@ interface Member extends User {
 interface Message {
   from: User;
   text: string;
-  date: Date | number;
+  createdAt: Date | number;
   tid?: number;
-  id: number;
+  id: string;
   type: string;
-  status: MessageDeliveryStatus;
+  status: 'None' | 'Server' | 'Delivered' | 'Read';
   isIncoming: boolean;
   metadata?: string;
-  chStatus: MessageUpdateStatus;
-  selfReactions?: Reaction[] | null;
-  lastReactions?: Reaction[] | null;
-  reactionScores?: { [key: string]: number } | null;
-  attachments?: Attachment[];
+  chStatus: 'Normal' | 'Edit' | 'Delete' | 'Composing' | 'Paused' | 'Reaction';
+  selfReactions: Reaction[];
+  lastReactions: Reaction[];
+  reactionScores: { [key: string]: number } | null;
+  attachments: Attachment[];
+  mentionedUsers: User[];
+  requestedMentionUserIds?: string[];
 }
 
 interface Attachment {
@@ -538,6 +459,13 @@ interface Reaction {
   user: User
 }
 
+interface ReactionEvent {
+  type: string,
+  from: User,
+  reaction: Reaction,
+  message: Message
+}
+
 interface Channel {
   lastMessage: Message | null;
   lastRead: number;
@@ -545,7 +473,7 @@ interface Channel {
   label?: string;
   metadata?: string;
   unreadCount: number;
-  type: ChannelType;
+  type: 'Public' | 'Private' | 'Direct';
   createdAt: Date | number;
   updatedAt: Date | number;
   id: string;
@@ -571,8 +499,8 @@ interface Channel {
   markAsUnRead: () => Promise<Channel>;
   mute: (muteExpireTime: number) => Promise<Channel>;
   unmute: () => Promise<Channel>;
-  addReaction: (messageId: string, key: string, score: number, reason: string, enforceUnique: boolean) => Promise<Message>
-  deleteReaction: (messageId: string, key: string) => Promise<Message>
+  addReaction: (messageId: string, key: string, score: number, reason: string, enforceUnique: boolean) => Promise<{ message: Message, reaction: Reaction }>
+  deleteReaction: (messageId: string, key: string) => Promise<{ message: Message, reaction: Reaction }>
 }
 
 interface GroupChannel extends Channel {
