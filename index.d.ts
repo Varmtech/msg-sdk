@@ -288,6 +288,9 @@ declare class MessageQueryBuilder extends QueryBuilder {
   constructor(channelPartialId: string);
   messageId: (msgId: number) => this;
   timestamp: (timestamp: number) => this;
+  limit: (limit: number) => this;
+  reverse: (isReverse: boolean) => this;
+  searchInThread: () => this;
   update: () => this;
   build: () => MessageQuery;
 }
@@ -304,13 +307,29 @@ interface MessageQuery extends Query {
   lastMessageId?: number | null;
   firstMessageId?: number | null;
   hasPrev: boolean;
-  limit: (limit: number) => this;
-  reverse: (isReverse: boolean) => this;
+  limit: number;
+  reverse: boolean;
   next: () => Promise<{
     messages: Message[];
     complete: boolean | undefined;
   }>;
+  nextMessageId: () => Promise<{
+    messages: Message[];
+    complete: boolean | undefined;
+  }>;
+  nextTimestamp: () => Promise<{
+    messages: Message[];
+    complete: boolean | undefined;
+  }>;
   prev: () => Promise<{
+    messages: Message[];
+    complete: boolean | undefined;
+  }>;
+  prevMessageId: () => Promise<{
+    messages: Message[];
+    complete: boolean | undefined;
+  }>;
+  prevTimestamp: () => Promise<{
     messages: Message[];
     complete: boolean | undefined;
   }>;
@@ -334,12 +353,17 @@ declare class MessageBuilder {
   metadata: string;
   attachments: IAttachmentParams[];
   tid: number;
+  parentMessageId: string;
+  replyInThread: boolean;
+
   constructor(userId: string, channelId: string);
   setText: (text: string) => this;
   setMetadata: (metadata: string) => this;
   setType: (type: string) => this;
   setAttachments: (attachments: IAttachmentParams[]) => this;
   setMentionUserIds: (userIds: string[]) => this;
+  setParentMessageId: (messageId: string) => this;
+  setReplyInThread: () => this;
   create: () => Message;
 }
 
@@ -425,6 +449,7 @@ interface Message {
   from: User;
   text: string;
   createdAt: Date | number;
+  updatedAt: Date | number;
   tid?: number;
   id: string;
   type: string;
@@ -438,6 +463,8 @@ interface Message {
   attachments: Attachment[];
   mentionedUsers: User[];
   requestedMentionUserIds?: string[];
+  parentMessage?: Message;
+  replyInThread?: boolean;
 }
 
 interface Attachment {
@@ -490,8 +517,8 @@ interface Channel {
   sendMessage: (message: Message ) => Promise<Message>;
   reSendMessage: (message: Message ) => Promise<Message>;
   createMessageBuilder: () => MessageBuilder;
-  deleteMessage: (msgId: number, ) => Promise<Message>;
-  editMessage: (msgId: number, body: string, ) => Promise<Message>;
+  deleteMessage: (msgId: string ) => Promise<Message>;
+  editMessage: (message) => Promise<Message>;
   startTyping: () => void;
   stopTyping: () => void;
   markAllMessagesAsDelivered: () => Promise<void>;
