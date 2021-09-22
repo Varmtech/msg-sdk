@@ -1,6 +1,6 @@
-export default Sceyt;
+export default SceytChat;
 
-declare class Sceyt {
+declare class SceytChat {
   chatClient: ChatClient;
   clientId: string;
   constructor(apiUrl: string, appId: string, clientId: string, connectionTimeout?: number);
