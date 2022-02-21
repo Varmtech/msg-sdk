@@ -44,12 +44,15 @@ declare class ChatClient {
   PrivateChannel: PrivateChannel;
   DirectChannel: DirectChannel;
   authState: 'NOT_AUTHENTICATED' | 'HTTP_AUTH_FAILED' | 'SOCKET_AUTH_FAILED' | 'HTTP_AUTHENTICATING'
-      | 'SOCKET_AUTHENTICATING' | 'HTTP_AUTHENTICATED' | 'SOCKET_AUTHENTICATED' | 'AUTHENTICATED' | 'CONNECTION_TIMEOUT'
+      | 'SOCKET_AUTHENTICATING' | 'HTTP_AUTHENTICATED' | 'SOCKET_AUTHENTICATED' | 'AUTHENTICATED' | 'CONNECTION_TIMEOUT';
+  channelReport(report: string, channelId: string, messageIds?: string[]): Promise<void>;
+  updatePresence(presenceState: string): Promise<void>;
   ChannelListQueryBuilder(): ChannelListQueryBuilder;
   MemberListQueryBuilder(channelId: string): MemberListQueryBuilder;
   BlockedMemberListQueryBuilder(): BlockedMemberListQueryBuilder;
   MessageListQueryBuilder(channelId: string): MessageListQueryBuilder;
   MessageListByTypeQueryBuilder(channelId: string, type: string): MessageListByTypeQueryBuilder;
+  MessageMarkerListQueryBuilder(channelId: string, messageId: string, markers: string[]): MessageMarkerListQueryBuilder;
   UserListQueryBuilder(): UserListQueryBuilder;
   BlockedUserListQueryBuilder(): BlockedUserListQueryBuilder;
   BlockedChannelListQuery(): BlockedChannelListQueryBuilder;
@@ -394,7 +397,7 @@ interface MessageListByTypeQuery {
   reverse: boolean;
   loading: boolean;
   hasNext: boolean;
-  limit: boolean;
+  limit: number;
 
   loadNext: () => Promise<{
     messages: Message[];
@@ -408,6 +411,25 @@ interface MessageListByTypeQuery {
     messages: Message[];
     complete: boolean | undefined;
   }>;
+}
+
+declare class MessageMarkerListQueryBuilder extends QueryBuilder {
+  constructor(channelId: string, messageId: string, markers: string[]);
+  limit: (limit: number) => this;
+  reverse: (isReverse: boolean) => void;
+  build: () => MessageMarkerListQuery;
+}
+
+interface MessageMarkerListQuery {
+  readonly channelId: string;
+  readonly messageId: string;
+  readonly markers: string[];
+  reverse: boolean;
+  loading: boolean;
+  hasNext: boolean;
+  limit: number;
+
+  loadNext: () => Promise<{ markers: MessageMarker[], hasNext: boolean }>;
 }
 
 declare class ChannelListener {
@@ -592,4 +614,11 @@ interface PublicChannel extends GroupChannel {
   update: (channelConfig: IPublicChannelConfig) => Promise<PublicChannel>;
   create(channelData: ICreatePublicChannel): Promise<PublicChannel>;
   join: () => Promise<Member>;
+}
+
+interface MessageMarker {
+  messageId: string;
+  user: User;
+  name: string;
+  createAt: Date
 }
