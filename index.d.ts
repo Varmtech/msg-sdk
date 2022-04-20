@@ -45,8 +45,10 @@ declare class ChatClient {
   DirectChannel: DirectChannel;
   authState: 'NOT_AUTHENTICATED' | 'HTTP_AUTH_FAILED' | 'SOCKET_AUTH_FAILED' | 'HTTP_AUTHENTICATING'
       | 'SOCKET_AUTHENTICATING' | 'HTTP_AUTHENTICATED' | 'SOCKET_AUTHENTICATED' | 'AUTHENTICATED' | 'CONNECTION_TIMEOUT';
-  channelReport(report: string, channelId: string, messageIds?: string[]): Promise<void>;
-  updatePresence(presenceState: string): Promise<void>;
+  channelReport(report: string, channelId: string, description?: string, messageIds?: string[]): Promise<void>;
+  messageReport(report: string, channelId: string, messageIds: string[], description?: string): Promise<void>;
+  userReport(report: string, userId: string, messageIds?: string[], description?: string): Promise<void>;
+  updatePresence(state: 'Offline' | 'Online' | 'Invisible' | 'Away' | 'DND', status: string): Promise<void>;
   ChannelListQueryBuilder(): ChannelListQueryBuilder;
   MemberListQueryBuilder(channelId: string): MemberListQueryBuilder;
   BlockedMemberListQueryBuilder(): BlockedMemberListQueryBuilder;
@@ -436,8 +438,7 @@ declare class ChannelListener {
   onCreated: (channel: Channel) => void;
   onUpdated: (channel: Channel) => void;
   onDeleted: (channelId: string) => void;
-  onDeliveryReceiptReceived: (channel: Channel) => void;
-  onReadReceiptReceived: (channel: Channel) => void;
+  onReceivedMessageListMarker: (channelId: string, markers: MessageListMarker[]) => void;
   onTotalUnreadCountUpdated: (channel: Channel, totalUnreadChannelCount: number, totalUnreadMessageCount: number) => void;
   onHidden: (channel: Channel) => void;
   onShown: (channel: Channel) => void;
@@ -497,6 +498,7 @@ interface Message {
   user: User;
   state: 'None' | 'Edited' | 'Deleted';
   deliveryStatus:  'Pending' | 'Sent' | 'Delivered' | 'Read' | 'Failed';
+  selfMarkers:  string[];
   attachments: Attachment[];
   selfReactions: Reaction[];
   lastReactions: Reaction[];
@@ -618,6 +620,13 @@ interface PublicChannel extends GroupChannel {
 
 interface MessageMarker {
   messageId: string;
+  user: User;
+  name: string;
+  createAt: Date
+}
+
+interface MessageListMarker {
+  messageIds: string[];
   user: User;
   name: string;
   createAt: Date
