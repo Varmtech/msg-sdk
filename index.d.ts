@@ -28,6 +28,7 @@ declare class ChatClient {
   enableAutoSendMessageStatusDelivered: boolean;
   channelListeners: ChannelListener;
   connectionListeners: ConnectionListener;
+  setLogLevel: (level: 'trace' | 'debug' | 'info' | 'warn' | 'error' | 'silent') => void;
   updateToken: (jwt: string) => Promise<unknown>;
   setProfile: (profile: IUserProfile) => Promise<User>;
   mute: (muteExpireTime: number) => Promise<ISettings>;
@@ -35,7 +36,7 @@ declare class ChatClient {
   getUsers: (usersIds: string[]) => Promise<User[]>;
   blockUsers: (usersIds: string[]) => Promise<User[]>;
   unblockUsers: (usersIds: string[]) => Promise<User[]>;
-  uploadFile: (file: { data: File, progress: ()=> number }) => void;
+  uploadFile: (file: { data: File, progress?: (percent: number) => void }) => Promise<string>;
   getRoles: () => Promise<string[]>;
   getChannel: (id: string) => Promise<Channel>;
   getTotalUnreads: () => Promise<{ totalUnread: number, unreadChannels: number }>;
@@ -48,7 +49,7 @@ declare class ChatClient {
   channelReport(report: string, channelId: string, description?: string, messageIds?: string[]): Promise<void>;
   messageReport(report: string, channelId: string, messageIds: string[], description?: string): Promise<void>;
   userReport(report: string, userId: string, messageIds?: string[], description?: string): Promise<void>;
-  setPresence(state: 'Offline' | 'Online' | 'Invisible' | 'Away' | 'DND', status: string): Promise<void>;
+  setPresence(state: 'Offline' | 'Online' | 'Invisible' | 'Away' | 'DND', status?: string): Promise<void>;
   ChannelListQueryBuilder(): ChannelListQueryBuilder;
   MemberListQueryBuilder(channelId: string): MemberListQueryBuilder;
   BlockedMemberListQueryBuilder(): BlockedMemberListQueryBuilder;
@@ -59,6 +60,7 @@ declare class ChatClient {
   BlockedUserListQueryBuilder(): BlockedUserListQueryBuilder;
   BlockedChannelListQuery(): BlockedChannelListQueryBuilder;
   HiddenChannelListQueryBuilder(): HiddenChannelListQueryBuilder;
+  AttachmentListQueryBuilder(): AttachmentListQueryBuilder;
 }
 
 interface SceytChatError extends Error{
@@ -304,6 +306,18 @@ declare class MessageListQueryBuilder extends QueryBuilder {
   build: () => MessageListQuery;
 }
 
+declare class AttachmentListQueryBuilder extends QueryBuilder {
+  channelId: string;
+  reversed: boolean;
+  searchThread: boolean;
+  attachmentTypes: string[];
+  constructor(channelId: string, attachmentTypes: string[]);
+  limit: (limit: number) => this;
+  reverse: (isReverse: boolean) => this;
+  searchInThread: () => this;
+  build: () => AttachmentListQuery;
+}
+
 interface MessageListQuery{
   channelId: string;
   loading: boolean;
@@ -313,39 +327,85 @@ interface MessageListQuery{
 
   loadNext: () => Promise<{
     messages: Message[];
-    complete: boolean | undefined;
+    hasNext: boolean;
   }>;
-  loadNextMessageId: () => Promise<{
+  loadNextMessageId: (messageId: number) => Promise<{
     messages: Message[];
-    complete: boolean | undefined;
+    hasNext: boolean;
   }>;
-  loadNextTimestamp: () => Promise<{
+  loadNextTimestamp: (timeStamp: number) => Promise<{
     messages: Message[];
-    complete: boolean | undefined;
+    hasNext: boolean;
   }>;
   loadPrevious: () => Promise<{
     messages: Message[];
-    complete: boolean | undefined;
+    hasNext: boolean;
   }>;
-  loadPreviousMessageId: () => Promise<{
+  loadPreviousMessageId: (messageId: number) => Promise<{
     messages: Message[];
-    complete: boolean | undefined;
+    hasNext: boolean;
   }>;
-  loadPreviousTimestamp: () => Promise<{
+  loadPreviousTimestamp: (timeStamp: number) => Promise<{
     messages: Message[];
-    complete: boolean | undefined;
+    hasNext: boolean;
   }>;
   loadNear: () => Promise<{
     messages: Message[];
-    complete: boolean | undefined;
+    hasNext: boolean;
   }>;
   loadNearMessageId: (messageId: number) => Promise<{
     messages: Message[];
-    complete: boolean | undefined;
+    hasNext: boolean;
   }>;
   loadNearTimestamp: (timeStamp: number) => Promise<{
     messages: Message[];
-    complete: boolean | undefined;
+    hasNext: boolean;
+  }>;
+}
+
+interface AttachmentListQuery{
+  channelId: string;
+  loading: boolean;
+  hasNext: boolean;
+  reversed: boolean;
+  attachmentTypes: string[];
+  limit: number;
+
+  loadNext: () => Promise<{
+    messages: Attachment[];
+    hasNext: boolean;
+  }>;
+  loadNextAttachmentId: (attachmentId: string) => Promise<{
+    messages: Attachment[];
+    hasNext: boolean;
+  }>;
+  loadNextTimestamp: (timeStamp: number) => Promise<{
+    messages: Attachment[];
+    hasNext: boolean;
+  }>;
+  loadPrevious: () => Promise<{
+    messages: Attachment[];
+    hasNext: boolean;
+  }>;
+  loadPreviousAttachmentId: (attachmentId: string) => Promise<{
+    messages: Attachment[];
+    hasNext: boolean;
+  }>;
+  loadPreviousTimestamp: (timeStamp: number) => Promise<{
+    messages: Attachment[];
+    hasNext: boolean;
+  }>;
+  loadNear: () => Promise<{
+    messages: Attachment[];
+    hasNext: boolean;
+  }>;
+  loadNearAttachmentId: (attachmentId: string) => Promise<{
+    messages: Attachment[];
+    hasNext: boolean;
+  }>;
+  loadNearTimestamp: (timeStamp: number) => Promise<{
+    messages: Attachment[];
+    hasNext: boolean;
   }>;
 }
 
@@ -439,7 +499,7 @@ declare class ChannelListener {
   onUpdated: (channel: Channel) => void;
   onDeleted: (channelId: string) => void;
   onReceivedMessageListMarker: (channelId: string, markers: MessageListMarker[]) => void;
-  onTotalUnreadCountUpdated: (channel: Channel, totalUnreadChannelCount: number, totalUnreadMessageCount: number) => void;
+  onTotalUnreadCountUpdated: (channel: Channel, totalUnreadChannelCount: number, totalUnreadMessageCount: number, channelUnreadMessagesCount: number) => void;
   onHidden: (channel: Channel) => void;
   onShown: (channel: Channel) => void;
   onMuted: (channel: Channel) => void;
@@ -447,6 +507,7 @@ declare class ChannelListener {
   onBlocked: (channel: GroupChannel) => void;
   onUnblocked: (channel: GroupChannel) => void;
   onHistoryCleared: (channel: Channel) => void;
+  onDeletedAllMessages: (channel: Channel) => void;
   onMarkedAsUnread: (channel: Channel) => void;
   onOwnerChanged: (channel: GroupChannel, newOwner: Member, oldOwner: Member) => void;
   onMemberJoined: (channel: PublicChannel, member: Member) => void;
@@ -483,7 +544,7 @@ declare class User {
     status: string,
     lastActiveAt: Date
   };
-  activityState: string
+  activityState: 'Active' | 'Inactive' | "Deleted"
 }
 
 interface Member extends User {
@@ -519,11 +580,14 @@ interface Message {
 }
 
 interface Attachment {
+  id: string;
+  createdAt: Date;
   url: string;
   type: string;
   name: string;
   metadata?: string;
   uploadedFileSize?: number;
+  user: User;
 }
 
 interface Reaction {
@@ -536,13 +600,6 @@ interface Reaction {
 
 interface Role {
   name: string
-}
-
-interface ReactionEvent {
-  type: string,
-  from: User,
-  reaction: Reaction,
-  message: Message
 }
 
 interface Channel {
@@ -559,12 +616,11 @@ interface Channel {
   muteExpireTime: Date | number;
   type: 'Public' | 'Private' | 'Direct';
   delete: () => Promise<void>;
-  clearHistory: () => Promise<{
-    cleared: boolean;
-  }>;
-  hide: () => Promise<boolean>;
-  unhide: () => Promise<boolean>;
+  deleteAllMessages: (deleteForMe?: boolean) => Promise<void>;
+  hide: () => Promise<void>;
+  unhide: () => Promise<void>;
   markAsUnRead: () => Promise<Channel>;
+  markAsRead: () => Promise<Channel>;
   mute: (muteExpireTime: number) => Promise<Channel>;
   unmute: () => Promise<Channel>;
   markMessagesAsDelivered: (messageIds: string[]) => Promise<void>;
