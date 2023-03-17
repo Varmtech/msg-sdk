@@ -420,6 +420,7 @@ declare class MessageBuilder {
   setMentionUserIds: (userIds: string[]) => this;
   setParentMessageId: (messageId: string) => this;
   setReplyInThread: () => this;
+  setForwardingMessageId: (messageId: string) => this;
   create: () => Message;
 }
 
@@ -575,6 +576,12 @@ interface Message {
   replyCount?: number;
   transient: boolean;
   silent: boolean;
+  forwardingDetails?: {
+    channelId: string
+    hops: number
+    messageId: string
+    user: User
+  }
 
   mentionUserIds: () => string[];
 }
@@ -606,7 +613,9 @@ interface Channel {
   id: string;
   createdAt: Date | number;
   updatedAt: Date | number;
-  unreadCount: number;
+  unreadMessageCount: number;
+  unreadMentionsCount: number;
+  unreadReactionsCount: number;
   lastReadMessageId: number;
   lastDeliveredMessageId: number;
   lastMessage: Message | null;
