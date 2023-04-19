@@ -638,7 +638,7 @@ export declare type UploadProgress = (progressPercent: number) => void;
 export declare type UploadCompletion = (attachment: Attachment, err: SceytChatError) => void;
 
 interface ContactDiscovery {
-  keys: string
+  key: string
   firstName?: string;
   lastName?: string
   metadata?: string
