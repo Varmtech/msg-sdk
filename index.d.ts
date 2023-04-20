@@ -40,7 +40,8 @@ declare class SceytChat {
   userReport: (report: string, userId: string, messageIds?: string[], description?: string) => Promise<void>;
   setPresence: (state: UserPresenceState, status?: string) => Promise<void>;
   getAllContacts: () => Promise<Contact[]>;
-  addContactDiscoveries: (contactDiscoveries: ContactDiscovery[], ) => Promise<ContactDiscovery[]>;
+  addContactDiscoveries: (contactDiscoveries: ContactDiscovery[]) => Promise<ContactDiscovery[]>;
+  deleteAllContactDiscoveries: () => Promise<void>;
 
   PublicChannel(): PublicChannel;
   PrivateChannel(): PrivateChannel;
